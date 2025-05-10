@@ -1,14 +1,12 @@
 import json
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 import numpy as np
 from pathlib import Path
 from typing import Dict, List
 import argparse
-from transformers import T5ForConditionalGeneration, T5Tokenizer
-from datasets import load_metric
-import torch
+from transformers import T5ForConditionalGeneration
+import evaluate
 from tqdm import tqdm
 
 
@@ -24,36 +22,59 @@ def create_comparison_plots(results: List[Dict], output_dir: str):
     df = pd.DataFrame(results)
 
     # Set style
-    plt.style.use("seaborn")
-    sns.set_palette("husl")
+    plt.style.use("default")
+    plt.rcParams.update({
+        'figure.figsize': (10, 6),
+        'axes.grid': True,
+        'grid.alpha': 0.3
+    })
 
     # Create output directory
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     # 1. Training Time Comparison
-    plt.figure(figsize=(10, 6))
-    sns.barplot(data=df, x="fine_tune_type", y="training_time")
+    plt.figure()
+    plt.bar(df["fine_tune_type"], df["training_time"])
     plt.title("Training Time Comparison")
     plt.xlabel("Fine-tuning Method")
     plt.ylabel("Time (seconds)")
+    plt.xticks(rotation=45)
+    plt.tight_layout()
     plt.savefig(f"{output_dir}/training_time_comparison.png")
     plt.close()
 
     # 2. Loss Comparison
-    plt.figure(figsize=(10, 6))
-    df_melted = pd.melt(
-        df,
-        id_vars=["fine_tune_type"],
-        value_vars=["train_loss", "eval_loss"],
-        var_name="Loss Type",
-        value_name="Loss",
-    )
-    sns.barplot(data=df_melted, x="fine_tune_type", y="Loss", hue="Loss Type")
+    plt.figure()
+    x = np.arange(len(df["fine_tune_type"]))
+    width = 0.35
+
+    plt.bar(x - width/2, df["train_loss"], width, label='Training Loss')
+    plt.bar(x + width/2, df["eval_loss"], width, label='Evaluation Loss')
     plt.title("Training vs Evaluation Loss")
     plt.xlabel("Fine-tuning Method")
     plt.ylabel("Loss")
-    plt.legend(title="Loss Type")
+    plt.xticks(x, df["fine_tune_type"], rotation=45)
+    plt.legend()
+    plt.tight_layout()
     plt.savefig(f"{output_dir}/loss_comparison.png")
+    plt.close()
+
+    # 3. ROUGE and BLEU Scores
+    plt.figure(figsize=(12, 6))
+    metrics = ['rouge1', 'rouge2', 'rougeL', 'bleu']
+    x = np.arange(len(df["fine_tune_type"]))
+    width = 0.2
+
+    for i, metric in enumerate(metrics):
+        plt.bar(x + i*width, df['metrics'].apply(lambda x: x[metric]), width, label=metric.upper())
+
+    plt.title("ROUGE and BLEU Scores Comparison")
+    plt.xlabel("Fine-tuning Method")
+    plt.ylabel("Score")
+    plt.xticks(x + width*1.5, df["fine_tune_type"], rotation=45)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/metrics_comparison.png")
     plt.close()
 
 
@@ -65,17 +86,20 @@ def analyze_lora_hyperparameters(results: List[Dict], output_dir: str):
 
     # Extract LoRA configurations
     ranks = []
-    alphas = []
     losses = []
     times = []
+    metrics = {
+        'rouge1': [], 'rouge2': [], 'rougeL': [], 'bleu': []
+    }
 
     for result in lora_results:
         if "config" in result and "peft_config" in result["config"]:
             config = result["config"]["peft_config"]
             ranks.append(config.get("r", 0))
-            alphas.append(config.get("lora_alpha", 0))
             losses.append(result["eval_loss"])
             times.append(result["training_time"])
+            for metric in metrics:
+                metrics[metric].append(result["metrics"][metric])
 
     if ranks:
         # Rank vs Loss
@@ -96,6 +120,17 @@ def analyze_lora_hyperparameters(results: List[Dict], output_dir: str):
         plt.savefig(f"{output_dir}/lora_rank_vs_time.png")
         plt.close()
 
+        # Rank vs Metrics
+        plt.figure(figsize=(12, 6))
+        for metric, values in metrics.items():
+            plt.plot(ranks, values, marker='o', label=metric.upper())
+        plt.title("LoRA Rank vs Metrics")
+        plt.xlabel("LoRA Rank")
+        plt.ylabel("Score")
+        plt.legend()
+        plt.savefig(f"{output_dir}/lora_rank_vs_metrics.png")
+        plt.close()
+
 
 def evaluate_model_performance(model_path: str, test_dataset, tokenizer):
     """Evaluate model performance on test dataset."""
@@ -103,8 +138,8 @@ def evaluate_model_performance(model_path: str, test_dataset, tokenizer):
     model.eval()
 
     # Load metrics
-    rouge = load_metric("rouge")
-    bleu = load_metric("sacrebleu")
+    rouge = evaluate.load("rouge")
+    bleu = evaluate.load("sacrebleu")
 
     predictions = []
     references = []
@@ -126,9 +161,9 @@ def evaluate_model_performance(model_path: str, test_dataset, tokenizer):
     bleu_score = bleu.compute(predictions=predictions, references=references)
 
     return {
-        "rouge1": rouge_scores["rouge1"].mid.fmeasure,
-        "rouge2": rouge_scores["rouge2"].mid.fmeasure,
-        "rougeL": rouge_scores["rougeL"].mid.fmeasure,
+        "rouge1": rouge_scores["rouge1"],
+        "rouge2": rouge_scores["rouge2"],
+        "rougeL": rouge_scores["rougeL"],
         "bleu": bleu_score["score"],
     }
 
@@ -141,22 +176,38 @@ def generate_comparison_report(results: List[Dict], output_dir: str):
     # Overall comparison
     report.append("## Overall Comparison\n")
     df = pd.DataFrame(results)
-    report.append("### Training Time and Loss\n")
-    report.append(
-        df[["fine_tune_type", "training_time", "train_loss", "eval_loss"]].to_markdown()
-    )
+    
+    # Create metrics table
+    metrics_df = pd.DataFrame([
+        {
+            'fine_tune_type': r['fine_tune_type'],
+            'training_time': r['training_time'],
+            'train_loss': r['train_loss'],
+            'eval_loss': r['eval_loss'],
+            'rouge1': r['metrics']['rouge1'],
+            'rouge2': r['metrics']['rouge2'],
+            'rougeL': r['metrics']['rougeL'],
+            'bleu': r['metrics']['bleu']
+        }
+        for r in results
+    ])
+    
+    report.append("### Training Time, Loss, and Metrics\n")
+    report.append(metrics_df.to_markdown(index=False))
 
     # Method-specific analysis
     report.append("\n## Method-specific Analysis\n")
-    for method in ["full", "adapter", "lora"]:
+    for method in ["base", "full", "adapter", "lora"]:
         method_results = [r for r in results if r["fine_tune_type"] == method]
         if method_results:
             report.append(f"\n### {method.upper()} Fine-tuning\n")
-            report.append(
-                f"- Training Time: {method_results[0]['training_time']:.2f} seconds"
-            )
-            report.append(f"- Training Loss: {method_results[0]['train_loss']:.4f}")
+            if method != "base":
+                report.append(f"- Training Time: {method_results[0]['training_time']:.2f} seconds")
+                report.append(f"- Training Loss: {method_results[0]['train_loss']:.4f}")
             report.append(f"- Evaluation Loss: {method_results[0]['eval_loss']:.4f}")
+            report.append("\nMetrics:")
+            for metric, value in method_results[0]['metrics'].items():
+                report.append(f"- {metric.upper()}: {value:.4f}")
 
             if method == "lora":
                 config = method_results[0]["config"].get("peft_config", {})
@@ -179,7 +230,7 @@ def main():
     )
     parser.add_argument(
         "--output_dir",
-        default="./eval_results",
+        default="./results",
         help="Directory to save evaluation results",
     )
     parser.add_argument(

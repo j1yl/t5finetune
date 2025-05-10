@@ -1,0 +1,117 @@
+[
+  {
+    "fine_tune_type": "base",
+    "training_time": 0,
+    "train_loss": 0,
+    "eval_loss": 0,
+    "metrics": {
+      "rouge1": 0.2971629740763587,
+      "rouge2": 0.1025389879467805,
+      "rougeL": 0.267342603565217,
+      "bleu": 4.853010978155446
+    }
+  },
+  {
+    "fine_tune_type": "full",
+    "training_time": 548.9043745994568,
+    "train_loss": 1.9732779600681403,
+    "eval_loss": 0.3951674699783325,
+    "metrics": {
+      "rouge1": 0.4407961333441478,
+      "rouge2": 0.21786690651812998,
+      "rougeL": 0.4183179957185216,
+      "bleu": 18.754498315685403
+    },
+    "config": {}
+  },
+  {
+    "fine_tune_type": "adapter",
+    "training_time": 431.6892201900482,
+    "train_loss": 62.33903112166967,
+    "eval_loss": 8.939166069030762,
+    "metrics": {
+      "rouge1": 0.29883860861801803,
+      "rouge2": 0.10365408934188056,
+      "rougeL": 0.2691435552036656,
+      "bleu": 5.016539261965713
+    },
+    "config": {
+      "adapter_name": "summarization"
+    }
+  },
+  {
+    "fine_tune_type": "lora",
+    "training_time": 439.5824074745178,
+    "train_loss": 4.94169970200612,
+    "eval_loss": 0.4773314297199249,
+    "metrics": {
+      "rouge1": 0.389379778844162,
+      "rouge2": 0.17264980549470957,
+      "rougeL": 0.36641741737415134,
+      "bleu": 13.434971862911313
+    },
+    "config": {
+      "peft_config": {
+        "task_type": "TaskType.SEQ_2_SEQ_LM",
+        "inference_mode": false,
+        "r": 4,
+        "lora_alpha": 32,
+        "lora_dropout": 0.1,
+        "target_modules": [
+          "q",
+          "v"
+        ]
+      }
+    }
+  },
+  {
+    "fine_tune_type": "lora",
+    "training_time": 426.9961860179901,
+    "train_loss": 4.882795888643998,
+    "eval_loss": 0.48481523990631104,
+    "metrics": {
+      "rouge1": 0.3828745027964738,
+      "rouge2": 0.16917138684688562,
+      "rougeL": 0.3600578737160964,
+      "bleu": 12.973348408425956
+    },
+    "config": {
+      "peft_config": {
+        "task_type": "TaskType.SEQ_2_SEQ_LM",
+        "inference_mode": false,
+        "r": 8,
+        "lora_alpha": 32,
+        "lora_dropout": 0.1,
+        "target_modules": [
+          "q",
+          "v"
+        ]
+      }
+    }
+  },
+  {
+    "fine_tune_type": "lora",
+    "training_time": 462.3788983821869,
+    "train_loss": 4.8120875129332905,
+    "eval_loss": 0.49250876903533936,
+    "metrics": {
+      "rouge1": 0.3745115930806098,
+      "rouge2": 0.16401367321712199,
+      "rougeL": 0.3507749223771067,
+      "bleu": 12.480480076952883
+    },
+    "config": {
+      "peft_config": {
+        "task_type": "TaskType.SEQ_2_SEQ_LM",
+        "inference_mode": false,
+        "r": 16,
+        "lora_alpha": 32,
+        "lora_dropout": 0.1,
+        "target_modules": [
+          "q",
+          "v"
+        ]
+      }
+    }
+  }
+]
