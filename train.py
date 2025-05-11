@@ -144,7 +144,7 @@ def train_and_evaluate(
     learning_rate: float = 3e-4,
     batch_size: int = 32,
     num_epochs: int = 3,
-    lora_rank: int = 8,  # Added LoRA rank parameter
+    lora_rank: int = 8,
     **kwargs,
 ) -> Dict[str, Any]:
     """Train and evaluate the model with timing and metrics."""
@@ -156,7 +156,7 @@ def train_and_evaluate(
         peft_config = LoraConfig(
             task_type=TaskType.SEQ_2_SEQ_LM,
             inference_mode=False,
-            r=lora_rank,  # Use the provided rank
+            r=lora_rank,
             lora_alpha=32,
             lora_dropout=0.1,
             target_modules=["q", "v"],
@@ -265,7 +265,6 @@ def main():
         )
         results.append(result)
 
-        # Print results
         print(f"\nResults for {method} fine-tuning:")
         print(f"Training time: {result['training_time']:.2f} seconds")
         print(f"Training loss: {result['train_loss']:.4f}")
@@ -288,7 +287,6 @@ def main():
         )
         results.append(result)
 
-        # Print results
         print(f"\nResults for LoRA (rank={rank}):")
         print(f"Training time: {result['training_time']:.2f} seconds")
         print(f"Training loss: {result['train_loss']:.4f}")

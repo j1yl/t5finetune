@@ -1,0 +1,150 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{mathtools}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{titlesec}
+\usepackage{setspace}
+
+% Configure column spacing
+\setlength{\columnsep}{4em}
+
+% Configure title format
+\titleformat{\section}
+  {\normalfont\large\bfseries}
+  {\arabic{section}}
+  {1em}
+  {}
+\titlespacing*{\section}{0pt}{1ex plus 0.5ex minus .2ex}{1ex plus .2ex}
+
+\titleformat{\subsection}
+  {\normalfont\bfseries}
+  {\arabic{section}.\arabic{subsection}}
+  {1em}
+  {}
+\titlespacing*{\subsection}{0pt}{0.75ex plus 0.5ex minus .2ex}{0.75ex plus .2ex}
+
+% Configure listings
+\lstset{
+    basicstyle=\small\ttfamily,
+    breaklines=true,
+    frame=single,
+    xleftmargin=1em,
+    xrightmargin=1em
+}
+
+% Configure itemize and enumerate
+\setlist{leftmargin=*}
+\setlist[itemize]{label=$\bullet$}
+\setlist[enumerate]{label=\arabic*.}
+
+% Custom title command
+\renewcommand{\maketitle}{%
+  \begin{center}
+    {\bfseries\large CS190I: Generative AI, Spring 2025\\
+    Programming Assignment 1\\
+    \normalsize Joe Lee\\
+    \today}
+  \end{center}
+}
+
+\begin{document}
+
+\maketitle
+
+\section{Model and Dataset Selection}
+We implemented fine-tuning experiments using the T5-small model \cite{raffel2020exploring} for headline generation. The model was fine-tuned on the Gigaword 10k dataset, which consists of news articles and their corresponding headlines. The task involves generating concise headlines from full news articles, making it an ideal candidate for testing different fine-tuning approaches.
+
+\section{Implementation Details}
+
+\subsection{Fine-tuning Approaches}
+We implemented three distinct fine-tuning strategies:
+
+\begin{enumerate}
+    \item Full fine-tuning: Updates all model parameters
+    \item Adapter fine-tuning: Adds trainable adapter layers
+    \item LoRA fine-tuning: Implements low-rank updates with varying ranks
+\end{enumerate}
+
+\subsection{Training Configuration}
+Key training parameters:
+\begin{itemize}
+    \item Batch size: 32
+    \item Learning rate: 3e-4
+    \item Optimizer: AdamW
+    \item Evaluation metrics: BLEU, ROUGE-1, ROUGE-2, ROUGE-L
+\end{itemize}
+
+\section{Results and Analysis}
+
+\subsection{Performance Comparison}
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+Method & BLEU & ROUGE-1 & ROUGE-2 & ROUGE-L \\
+\midrule
+Base Model & 4.85 & 0.30 & 0.10 & 0.27 \\
+Full Fine-tuning & 18.75 & 0.44 & 0.22 & 0.42 \\
+Adapter & 5.02 & 0.30 & 0.10 & 0.27 \\
+LoRA (r=4) & 13.43 & 0.39 & 0.17 & 0.37 \\
+LoRA (r=8) & 12.97 & 0.38 & 0.17 & 0.36 \\
+LoRA (r=16) & 12.48 & 0.37 & 0.16 & 0.35 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Training Time Analysis}
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Method & Training Time (s) \\
+\midrule
+Full Fine-tuning & 549 \\
+Adapter & 432 \\
+LoRA (r=4) & 426 \\
+LoRA (r=8) & 427 \\
+LoRA (r=16) & 462 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Analysis and Discussion}
+
+\subsection{Accuracy Improvements}
+The results demonstrate significant improvements over the base model:
+\begin{itemize}
+    \item Full fine-tuning achieved the best performance (BLEU: 18.75)
+    \item LoRA fine-tuning provided a good balance between performance and efficiency
+    \item Adapter fine-tuning showed minimal improvement over the base model
+\end{itemize}
+
+\subsection{Impact of LoRA Rank}
+Analysis of different LoRA ranks reveals:
+\begin{itemize}
+    \item Lower ranks (r=4) achieved better performance
+    \item Higher ranks led to slightly worse results
+    \item Training time increased with rank size
+\end{itemize}
+
+\section{Lessons Learned}
+\begin{itemize}
+    \item Full fine-tuning provides the best accuracy but requires more computational resources
+    \item LoRA offers an excellent trade-off between performance and efficiency
+    \item Adapter fine-tuning may require more careful architecture design for this specific task
+    \item Lower LoRA ranks can be more effective than higher ones, suggesting that the task doesn't require complex parameter updates
+\end{itemize}
+
+\begin{thebibliography}{9}
+\bibitem{raffel2020exploring}
+C. Raffel, N. Shazeer, A. Roberts, K. Lee, S. Narang, M. Matena, Y. Zhou, W. Li, and P. J. Liu,
+``Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer,''
+\textit{Journal of Machine Learning Research}, vol. 21, no. 140, pp. 1-67, 2020.
+\end{thebibliography}
+
+\end{document} 
